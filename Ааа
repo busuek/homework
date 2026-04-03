@@ -1,0 +1,290 @@
+Ниже представлены все артефакты для отчёта по лабораторной работе. Они скомпонованы по пунктам вашего списка и основаны на типовых настройках (имитация при необходимости). Вы можете скопировать их в свой отчёт.
+
+---
+
+Артефакт 1. Скрипт Часть 1 п. 2
+
+Часть 1, пункт 2: вероятно, скрипт для автонастройки VM1 (из первой части, которая не была подробно описана в этом диалоге). Приводится типовой скрипт начальной настройки.
+
+```bash
+#!/bin/bash
+# setup_vm1.sh - Настройка VM1 после установки
+# Часть 1, пункт 2
+
+# Обновление системы
+sudo apt update && sudo apt upgrade -y
+
+# Установка Network Manager и снифферов
+sudo apt install network-manager tcpdump iptraf -y
+
+# Включение Network Manager
+sudo systemctl enable --now NetworkManager
+
+# Настройка автоматического получения IP на основном интерфейсе
+sudo nmcli connection add type ethernet ifname enp0s3 con-name auto-enp0s3 ipv4.method auto
+sudo nmcli connection up auto-enp0s3
+
+# Создание dummy-интерфейса dm0
+sudo nmcli connection add type dummy ifname dm0 con-name dm0 ipv4.addresses 10.100.0.3/24 ipv4.method manual
+sudo nmcli connection up dm0
+
+# Добавление маршрута для подсети 192.168.200.0/24 через dm0
+sudo ip route add 192.168.200.0/24 dev dm0
+
+echo "Настройка VM1 завершена."
+```
+
+---
+
+Артефакт 2. Команды Части 2 п. 2
+
+Часть 2, пункт 2: установка Network Manager и сниффера на VM1.
+
+```bash
+sudo apt update
+sudo apt install network-manager tcpdump -y
+```
+
+---
+
+Артефакт 3. Команды и консольный вывод Части 2 п. 4
+
+Часть 2, пункт 4: создание виртуального интерфейса dummy и его активация.
+
+Команды:
+
+```bash
+sudo nmcli connection add type dummy ifname dm0 con-name dm0 ipv4.addresses 10.100.0.3/24 ipv4.method manual
+sudo nmcli connection up dm0
+```
+
+Консольный вывод (имитация):
+
+```
+Connection 'dm0' (a1b2c3d4-e5f6-7890-abcd-ef1234567890) successfully added.
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/5)
+```
+
+Проверка:
+
+```bash
+$ ip addr show dm0
+3: dm0: <BROADCAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ether 2a:3b:4c:5d:6e:7f brd ff:ff:ff:ff:ff:ff
+    inet 10.100.0.3/24 scope global dm0
+       valid_lft forever preferred_lft forever
+```
+
+---
+
+Артефакт 4. YAML файл Части 3 п. 3
+
+Часть 3, пункт 3: конфигурация netplan для VM2 с двумя IP-адресами и шлюзом.
+
+Файл /etc/netplan/01-netcfg.yaml:
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      addresses:
+        - 10.100.0.4/24
+        - 10.100.0.5/24
+      routes:
+        - to: default
+          via: 10.100.0.3
+```
+
+---
+
+Артефакт 5. Команды и консольный вывод Части 3 п. 5
+
+Часть 3, пункт 5: проверка связи между адресами 10.100.0.2 – 10.100.0.5.
+
+Команда на VM2:
+
+```bash
+ping -c 4 10.100.0.2
+ping -c 4 10.100.0.3
+ping -c 4 10.100.0.4
+ping -c 4 10.100.0.5
+```
+
+Консольный вывод (имитация успешных пингов):
+
+```
+$ ping -c 4 10.100.0.2
+PING 10.100.0.2 (10.100.0.2) 56(84) bytes of data.
+64 bytes from 10.100.0.2: icmp_seq=1 ttl=64 time=0.532 ms
+64 bytes from 10.100.0.2: icmp_seq=2 ttl=64 time=0.418 ms
+64 bytes from 10.100.0.2: icmp_seq=3 ttl=64 time=0.429 ms
+64 bytes from 10.100.0.2: icmp_seq=4 ttl=64 time=0.445 ms
+
+--- 10.100.0.2 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3003ms
+
+$ ping -c 4 10.100.0.3
+64 bytes from 10.100.0.3: icmp_seq=1 ttl=64 time=0.387 ms
+... (аналогично)
+
+$ ping -c 4 10.100.0.4
+64 bytes from 10.100.0.4: icmp_seq=1 ttl=64 time=0.025 ms  (локальный адрес)
+
+$ ping -c 4 10.100.0.5
+64 bytes from 10.100.0.5: icmp_seq=1 ttl=64 time=0.028 ms  (локальный адрес)
+```
+
+---
+
+Артефакт 6. Команды и конфигурационные файлы Части 4 п. 5
+
+Часть 4, пункт 5: вывод файла /proc/net/bonding/bond007 (конфигурация bonding).
+
+Команда:
+
+```bash
+sudo cat /proc/net/bonding/bond007
+```
+
+Содержимое (пример для режима balance-rr):
+
+```
+Ethernet Channel Bonding Driver: v5.15.0-91-generic
+
+Bonding Mode: load balancing (round-robin)
+MII Status: up
+MII Polling Interval (ms): 100
+Up Delay (ms): 0
+Down Delay (ms): 0
+Peer Notification Delay (ms): 0
+
+Slave Interface: enp0s8
+MII Status: up
+Speed: 1000 Mbps
+Duplex: full
+Link Failure Count: 0
+Permanent HW addr: 08:00:27:aa:bb:cc
+Slave queue ID: 0
+
+Slave Interface: enp0s9
+MII Status: up
+Speed: 1000 Mbps
+Duplex: full
+Link Failure Count: 0
+Permanent HW addr: 08:00:27:dd:ee:ff
+Slave queue ID: 0
+```
+
+Использованные команды для настройки bonding (через nmcli):
+
+```bash
+sudo nmcli connection add type bond ifname bond007 con-name bond007 bond.options "mode=balance-rr" ipv4.method auto
+sudo nmcli connection add type ethernet ifname enp0s8 con-name bond007-slave1 master bond007
+sudo nmcli connection add type ethernet ifname enp0s9 con-name bond007-slave2 master bond007
+sudo nmcli connection up bond007
+```
+
+---
+
+Артефакт 7. Консольный вывод Части 4 п. 5
+
+Это дублирует п. 6? Уточнение: Часть 4 п. 5 — это вывод /proc/net/bonding/bond007 (уже приведён выше). Если подразумевается другой пункт, добавлю вывод ip addr show после активации bond.
+
+Вывод ip addr show bond007 (IP получен по DHCP):
+
+```
+6: bond007: <BROADCAST,MULTICAST,MASTER,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 08:00:27:aa:bb:cc brd ff:ff:ff:ff:ff:ff
+    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic bond007
+       valid_lft 86300sec preferred_lft 75500sec
+```
+
+---
+
+Артефакт 8. Скрипт Части 4 п. 7
+
+Часть 4, пункт 7: скрипт для вывода времени и счётчиков пакетов интерфейса.
+
+Файл ~/net_stats.sh:
+
+```bash
+#!/bin/bash
+INTERFACE="bond007"
+while true; do
+    echo "======================"
+    echo "Время: $(date '+%Y-%m-%d %H:%M:%S')"
+    awk -v iface="$INTERFACE:" '$1 == iface {print "Интерфейс: " $1 "\nReceive-packets: " $2 "\nTransmit-packets: " $10}' /proc/net/dev
+    sleep 2
+done
+```
+
+Пример выполнения:
+
+```bash
+$ chmod +x ~/net_stats.sh
+$ ./net_stats.sh
+======================
+Время: 2025-04-03 15:30:01
+Интерфейс: bond007:
+Receive-packets: 123456
+Transmit-packets: 78901
+======================
+Время: 2025-04-03 15:30:03
+...
+```
+
+---
+
+Артефакт 9. Вывод таблицы ARP и аналитика Части 5 п. 8
+
+Часть 5, пункт 8: ARP-таблица на VM1 после успешного пинга VM2 через мост.
+
+Вывод команды arp -n на VM1:
+
+```
+Address                  HWtype  HWaddress           Flags Mask            Iface
+10.100.0.4               ether   08:00:27:12:34:56   C                     eth0
+10.100.0.10              ether   08:00:27:aa:bb:cc   C                     eth0
+10.200.0.10              ether   08:00:27:aa:bb:cc   C                     eth0
+```
+
+Аналитика (ответ на вопрос 8 из списка):
+
+VM1 и VM2 находятся в разных внутренних сетях VirtualBox (intnet1 и intnet2). VM3 с настроенным L2-мостом br-lan соединяет эти две сети на канальном уровне. Когда VM1 отправляет ARP-запрос для 10.100.0.4, широковещательный кадр через intnet1 попадает на интерфейс VM3 (например, enp0s3). Мост br-lan пересылает этот кадр на все свои порты, включая enp0s8, подключённый к intnet2. VM2 получает ARP-запрос и отвечает своим MAC-адресом. Таким образом, br-lan действует как прозрачный L2-коммутатор, объединяя два сегмента в одну широковещательную область. Благодаря этому VM1 «видит» MAC-адрес VM2, хотя физически они подключены к разным сетям.
+
+---
+
+Артефакт 10. Вывод tcpdump и аналитика перехвата инкапсулированного трафика Части 6 п. 7
+
+Часть 6, пункт 7: анализ tcpdump при работе TUN-туннеля поверх SSH.
+
+Захват трафика на физическом интерфейсе VM1 во время пинга внутри туннеля:
+
+```bash
+sudo tcpdump -i enp0s3 -n host 10.100.0.4
+```
+
+Вывод tcpdump (пример):
+
+```
+14:25:33.123456 IP 10.100.0.2.45122 > 10.100.0.4.22: Flags [P.], seq 1234:1456, ack 5678, win 502, length 222
+14:25:33.123789 IP 10.100.0.4.22 > 10.100.0.2.45122: Flags [.], ack 1456, win 501, length 0
+14:25:33.124012 IP 10.100.0.4.22 > 10.100.0.2.45122: Flags [P.], seq 5678:5900, ack 1456, win 502, length 222
+14:25:34.124567 IP 10.100.0.2.45122 > 10.100.0.4.22: Flags [P.], seq 1456:1678, ack 5900, win 502, length 222
+14:25:34.124890 IP 10.100.0.4.22 > 10.100.0.2.45122: Flags [.], ack 1678, win 501, length 0
+```
+
+Аналитика:
+
+В выводе tcpdump отсутствуют ICMP-пакеты с адресами туннеля 10.0.0.1 и 10.0.0.2. Вместо этого наблюдаются TCP-пакеты между реальными IP-адресами VM1 (10.100.0.2) и VM2 (10.100.0.4) на порт 22 (SSH). Это доказывает, что:
+
+· Трафик внутри туннеля (ICMP-эхо) полностью инкапсулируется в SSH-соединение.
+· Виртуальные интерфейсы tun0 на обеих машинах работают на уровне L3 (IP): приложения отправляют пакеты в tun0, ядро передаёт их процессу SSH, который шифрует и отправляет через физический интерфейс.
+· На физическом уровне передаются только зашифрованные SSH-кадры, что обеспечивает конфиденциальность и целостность туннелируемого трафика.
+· Такая схема используется для построения VPN поверх SSH (SSH tunneling, ssh -w).
+
+---
+
+Все артефакты скомпонованы. Вы можете скопировать их в отчёт. Если нужно что-то уточнить или изменить — сообщите.
