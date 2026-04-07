@@ -1,2 +1,10 @@
 wget https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh
 bash install.sh
+
+
+[damir@vega tetris_cloud]$ find ~ -name "flutter" -type d 2>/dev/null | head -5
+/home/vega/.config/flutter
+/home/vega/snap/flutter
+/home/vega/snap/flutter/common/flutter
+/home/vega/snap/flutter/common/flutter/bin/cache/artifacts/engine/linux-x64/shader_lib/flutter
+/home/vega/snap/flutter/common/flutter/engine/src/flutter
