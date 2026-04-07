@@ -1,25 +1,7 @@
-[damir@vega tetris_cloud]$ flutter run
-Launching lib/main.dart on Linux in debug mode...
-Building Linux application...                                           
-✓ Built build/linux/x64/debug/bundle/tetris_cloud
-[ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: Unsupported operation: DefaultFirebaseOptions have not been configured for linux - you can reconfigure this by running the FlutterFire CLI again.
-#0      DefaultFirebaseOptions.currentPlatform (package:tetris_cloud/firebase_options.dart:32:9)
-#1      main (package:tetris_cloud/main.dart:11:37)
-#2      _runMain.<anonymous closure> (dart:ui/hooks.dart:345:23)
-#3      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:314:19)
-#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:193:12)
+[damir@vega tetris_cloud]$ flutter run -d firefox
+No supported devices found with name or id matching 'firefox'.
 
-Syncing files to device Linux...                                   107ms
-
-Flutter run key commands.
-r Hot reload. 🔥🔥🔥
-R Hot restart.
-h List all available interactive commands.
-d Detach (terminate "flutter run" but leave application running).
-c Clear the screen
-q Quit (terminate the application on the device).
-
-A Dart VM Service on Linux is available at: http://127.0.0.1:38117/VQMQM8dqKkM=/
-The Flutter DevTools debugger and profiler on Linux is available at: http://127.0.0.1:38117/VQMQM8dqKkM=/devtools/?uri=ws://127.0.0.1:38117/VQMQM8dqKkM=/ws
-
-
+The following devices were found:
+Linux (desktop) • linux • linux-x64 • Fedora Linux 38 (Workstation Edition)
+6.8.9-100.fc38.x86_64
+[damir@vega tetris_cloud]$ 
