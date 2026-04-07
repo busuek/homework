@@ -1,61 +1,13 @@
-import 'package:flutter/material.dart';
-import '../models/tetris_game.dart';
-
-class GameGrid extends StatelessWidget {
-  final TetrisGame game;
-
-  const GameGrid({Key? key, required this.game}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // Создаем копию сетки
-    List<List<int>> displayGrid = List.generate(20, (i) => List.from(game.grid[i]));
-    
-    // Накладываем текущую фигуру
-    var pieceMatrix = TetrisGame.pieces[game.currentPiece['type']]![game.currentPiece['rotation']];
-    int pieceX = game.currentPiece['x'];
-    int pieceY = game.currentPiece['y'];
-    
-    for (int i = 0; i < pieceMatrix.length; i++) {
-      for (int j = 0; j < pieceMatrix[0].length; j++) {
-        if (pieceMatrix[i][j] == 1) {
-          int gridX = pieceX + j;
-          int gridY = pieceY + i;
-          if (gridX >= 0 && gridX < 10 && gridY >= 0 && gridY < 20) {
-            displayGrid[gridY][gridX] = 1;
-          }
-        }
-      }
-    }
-
-    // Вычисляем размер ячейки на основе ширины экрана
-    double screenWidth = MediaQuery.of(context).size.width;
-    double cellSize = screenWidth / 12; // 10 колонок + отступы
-    double gridHeight = cellSize * 20;
-
-    return SizedBox(
-      width: cellSize * 10,
-      height: gridHeight,
-      child: GridView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 10,
-          childAspectRatio: 1,
-        ),
-        itemCount: 200,
-        itemBuilder: (context, index) {
-          int row = index ~/ 10;
-          int col = index % 10;
-          bool isFilled = displayGrid[row][col] == 1;
-          return Container(
-            margin: const EdgeInsets.all(1),
-            decoration: BoxDecoration(
-              color: isFilled ? Colors.blue : Colors.grey[300],
-              border: Border.all(color: Colors.grey.shade400),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
+[damir@vega tetris_cloud]$ flutter run -d web-server
+Launching lib/main.dart on Web Server in debug mode...
+Unhandled exception:
+FileSystemException: writeFrom failed, path = '/tmp/flutter_tools.KUKIDH/flutter_tool.KRTIBL/app.dill.map' (OS Error: No space left on device, errno = 28)
+#0      _checkForErrorResponse (dart:io/common.dart:58)
+#1      _RandomAccessFile.writeFrom.<anonymous closure> (dart:io/file_impl.dart:976)
+<asynchronous suspension>
+#2      _FileStreamConsumer.addStream.<anonymous closure>.<anonymous closure>.<anonymous closure> (dart:io/file_impl.dart:237)
+<asynchronous suspension>
+The Dart compiler exited unexpectedly.
+Waiting for connection from debug service on Web Server...         23.2s
+Failed to compile application.
+[damir@vega tetris_cloud]$ 
