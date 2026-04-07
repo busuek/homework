@@ -1,0 +1,226 @@
+class TetrisGame {
+  static const int width = 10;
+  static const int height = 20;
+  
+  List<List<int>> grid;
+  Map<String, dynamic> currentPiece;
+  int score;
+  int highScore;
+  bool isPaused;
+  bool isGameOver;
+  
+  // Формы фигур (матрицы)
+  static final Map<String, List<List<List<int>>>> pieces = {
+    'I': [
+      [[1,1,1,1]],
+      [[1],[1],[1],[1]]
+    ],
+    'O': [
+      [[1,1],[1,1]]
+    ],
+    'T': [
+      [[0,1,0],[1,1,1]],
+      [[1,0],[1,1],[1,0]],
+      [[1,1,1],[0,1,0]],
+      [[0,1],[1,1],[0,1]]
+    ],
+    'S': [
+      [[0,1,1],[1,1,0]],
+      [[1,0],[1,1],[0,1]]
+    ],
+    'Z': [
+      [[1,1,0],[0,1,1]],
+      [[0,1],[1,1],[1,0]]
+    ],
+    'L': [
+      [[1,0,0],[1,1,1]],
+      [[1,1],[1,0],[1,0]],
+      [[1,1,1],[0,0,1]],
+      [[0,1],[0,1],[1,1]]
+    ],
+    'J': [
+      [[0,0,1],[1,1,1]],
+      [[1,0],[1,0],[1,1]],
+      [[1,1,1],[1,0,0]],
+      [[1,1],[0,1],[0,1]]
+    ]
+  };
+  
+  TetrisGame({
+    required this.grid,
+    required this.currentPiece,
+    required this.score,
+    required this.highScore,
+    required this.isPaused,
+    this.isGameOver = false,
+  });
+  
+  factory TetrisGame.empty() {
+    return TetrisGame(
+      grid: List.generate(height, (_) => List.generate(width, (_) => 0)),
+      currentPiece: _randomPiece(),
+      score: 0,
+      highScore: 0,
+      isPaused: false,
+    );
+  }
+  
+  static Map<String, dynamic> _randomPiece() {
+    List<String> keys = pieces.keys.toList();
+    String type = keys[DateTime.now().millisecondsSinceEpoch % keys.length];
+    return {
+      'type': type,
+      'x': width ~/ 2 - 1,
+      'y': 0,
+      'rotation': 0,
+    };
+  }
+  
+  void spawnNewPiece() {
+    currentPiece = _randomPiece();
+    if (_collision()) {
+      isGameOver = true;
+    }
+  }
+  
+  List<List<int>> _pieceMatrix() {
+    String type = currentPiece['type'];
+    int rot = currentPiece['rotation'] % pieces[type]!.length;
+    return pieces[type]![rot];
+  }
+  
+  bool _collision({int dx = 0, int dy = 0, int newRot}) {
+    int rot = newRot ?? currentPiece['rotation'];
+    String type = currentPiece['type'];
+    var matrix = pieces[type]![rot % pieces[type]!.length];
+    int x = currentPiece['x'] + dx;
+    int y = currentPiece['y'] + dy;
+    
+    for (int i = 0; i < matrix.length; i++) {
+      for (int j = 0; j < matrix[0].length; j++) {
+        if (matrix[i][j] == 1) {
+          int newX = x + j;
+          int newY = y + i;
+          if (newX < 0 || newX >= width || newY >= height || newY < 0) return true;
+          if (newY >= 0 && grid[newY][newX] == 1) return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  bool moveLeft() {
+    if (isPaused || isGameOver) return false;
+    if (!_collision(dx: -1)) {
+      currentPiece['x']--;
+      return true;
+    }
+    return false;
+  }
+  
+  bool moveRight() {
+    if (isPaused || isGameOver) return false;
+    if (!_collision(dx: 1)) {
+      currentPiece['x']++;
+      return true;
+    }
+    return false;
+  }
+  
+  bool rotate() {
+    if (isPaused || isGameOver) return false;
+    int newRot = (currentPiece['rotation'] + 1) % pieces[currentPiece['type']]!.length;
+    if (!_collision(newRot: newRot)) {
+      currentPiece['rotation'] = newRot;
+      return true;
+    }
+    return false;
+  }
+  
+  bool drop() {
+    if (isPaused || isGameOver) return false;
+    if (!_collision(dy: 1)) {
+      currentPiece['y']++;
+      return true;
+    } else {
+      _mergePiece();
+      _clearLines();
+      spawnNewPiece();
+      return false;
+    }
+  }
+  
+  void hardDrop() {
+    if (isPaused || isGameOver) return;
+    while (!_collision(dy: 1)) {
+      currentPiece['y']++;
+    }
+    _mergePiece();
+    _clearLines();
+    spawnNewPiece();
+  }
+  
+  void _mergePiece() {
+    var matrix = _pieceMatrix();
+    int x = currentPiece['x'];
+    int y = currentPiece['y'];
+    for (int i = 0; i < matrix.length; i++) {
+      for (int j = 0; j < matrix[0].length; j++) {
+        if (matrix[i][j] == 1) {
+          int gridY = y + i;
+          int gridX = x + j;
+          if (gridY >= 0 && gridY < height && gridX >= 0 && gridX < width) {
+            grid[gridY][gridX] = 1;
+          }
+        }
+      }
+    }
+  }
+  
+  void _clearLines() {
+    int linesCleared = 0;
+    for (int y = height - 1; y >= 0; y--) {
+      bool full = true;
+      for (int x = 0; x < width; x++) {
+        if (grid[y][x] == 0) {
+          full = false;
+          break;
+        }
+      }
+      if (full) {
+        // Удаляем строку
+        for (int row = y; row > 0; row--) {
+          grid[row] = List.from(grid[row - 1]);
+        }
+        grid[0] = List.generate(width, (_) => 0);
+        linesCleared++;
+        y++; // Проверяем ту же строку снова
+      }
+    }
+    if (linesCleared > 0) {
+      score += [0, 40, 100, 300, 1200][linesCleared];
+    }
+  }
+  
+  Map<String, dynamic> toJson() {
+    return {
+      'grid': grid,
+      'currentPiece': currentPiece,
+      'score': score,
+      'highScore': highScore,
+      'isPaused': isPaused,
+      'isGameOver': isGameOver,
+    };
+  }
+  
+  factory TetrisGame.fromJson(Map<String, dynamic> json) {
+    return TetrisGame(
+      grid: List<List<int>>.from(json['grid'].map((row) => List<int>.from(row))),
+      currentPiece: Map<String, dynamic>.from(json['currentPiece']),
+      score: json['score'],
+      highScore: json['highScore'] ?? 0,
+      isPaused: json['isPaused'] ?? false,
+      isGameOver: json['isGameOver'] ?? false,
+    );
+  }
+}
