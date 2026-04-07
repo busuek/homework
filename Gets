@@ -1,0 +1,50 @@
+import 'package:flutter/material.dart';
+
+class GameGrid extends StatelessWidget {
+  final List<List<int>> grid;
+  final Map<String, dynamic> currentPiece;
+
+  const GameGrid({Key? key, required this.grid, required this.currentPiece}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Создаем копию сетки
+    List<List<int>> displayGrid = List.generate(20, (i) => List.from(grid[i]));
+    
+    // Накладываем текущую фигуру (временная заглушка - рисуем одну клетку)
+    int pieceX = currentPiece['x'] ?? 3;
+    int pieceY = currentPiece['y'] ?? 0;
+    if (pieceY >= 0 && pieceY < 20 && pieceX >= 0 && pieceX < 10) {
+      displayGrid[pieceY][pieceX] = 1;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double cellSize = constraints.maxWidth / 10;
+        return Container(
+          height: cellSize * 20,
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 10,
+              childAspectRatio: 1,
+            ),
+            itemCount: 200,
+            itemBuilder: (context, index) {
+              int row = index ~/ 10;
+              int col = index % 10;
+              bool isFilled = displayGrid[row][col] == 1;
+              return Container(
+                margin: const EdgeInsets.all(1),
+                decoration: BoxDecoration(
+                  color: isFilled ? Colors.blue : Colors.grey[300],
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
