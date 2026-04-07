@@ -1,0 +1,32 @@
+import 'package:flutter/material.dart';
+
+class ControlButtons extends StatelessWidget {
+  final VoidCallback onLeft;
+  final VoidCallback onRight;
+  final VoidCallback onRotate;
+  final VoidCallback onDown;
+  final VoidCallback onPause;
+
+  const ControlButtons({
+    Key? key,
+    required this.onLeft,
+    required this.onRight,
+    required this.onRotate,
+    required this.onDown,
+    required this.onPause,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Tooltip(message: 'Move Left', child: IconButton(icon: const Icon(Icons.arrow_left, size: 40), onPressed: onLeft)),
+        Tooltip(message: 'Move Right', child: IconButton(icon: const Icon(Icons.arrow_right, size: 40), onPressed: onRight)),
+        Tooltip(message: 'Rotate', child: IconButton(icon: const Icon(Icons.rotate_right, size: 40), onPressed: onRotate)),
+        Tooltip(message: 'Fast Drop', child: IconButton(icon: const Icon(Icons.arrow_downward, size: 40), onPressed: onDown)),
+        Tooltip(message: 'Pause / Save', child: IconButton(icon: const Icon(Icons.pause, size: 40), onPressed: onPause)),
+      ],
+    );
+  }
+}
