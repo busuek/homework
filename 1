@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+import '../models/tetris_game.dart';
+
+class GameGrid extends StatelessWidget {
+  final TetrisGame game;
+
+  const GameGrid({Key? key, required this.game}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Создаем копию сетки
+    List<List<int>> displayGrid = List.generate(20, (i) => List.from(game.grid[i]));
+    
+    // Накладываем текущую фигуру
+    try {
+      var pieceMatrix = TetrisGame.pieces[game.currentPiece['type']]![game.currentPiece['rotation']];
+      int pieceX = game.currentPiece['x'];
+      int pieceY = game.currentPiece['y'];
+      
+      for (int i = 0; i < pieceMatrix.length; i++) {
+        for (int j = 0; j < pieceMatrix[0].length; j++) {
+          if (pieceMatrix[i][j] == 1) {
+            int gridX = pieceX + j;
+            int gridY = pieceY + i;
+            if (gridX >= 0 && gridX < 10 && gridY >= 0 && gridY < 20) {
+              displayGrid[gridY][gridX] = 1;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Игнорируем ошибки отображения
+    }
+
+    // Фиксированный размер ячейки
+    const double cellSize = 30.0;
+    double gridHeight = cellSize * 20;
+
+    return SizedBox(
+      width: cellSize * 10,
+      height: gridHeight,
+      child: Column(
+        children: List.generate(20, (row) {
+          return Row(
+            children: List.generate(10, (col) {
+              bool isFilled = displayGrid[row][col] == 1;
+              return Container(
+                width: cellSize,
+                height: cellSize,
+                margin: const EdgeInsets.all(0.5),
+                decoration: BoxDecoration(
+                  color: isFilled ? Colors.blue : Colors.grey[300],
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+              );
+            }),
+          );
+        }),
+      ),
+    );
+  }
+}
