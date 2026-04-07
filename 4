@@ -1,73 +1,187 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/tetris_game.dart';
+import '../widgets/game_grid.dart';
+import '../widgets/control_buttons.dart';
+import '../services/firebase_service.dart';
+import 'game_over_screen.dart';
 
-class GameGrid extends StatelessWidget {
-  final TetrisGame game;
+class GameScreen extends StatefulWidget {
+  const GameScreen({Key? key}) : super(key: key);
 
-  const GameGrid({Key? key, required this.game}) : super(key: key);
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  late TetrisGame _game;
+  late FirebaseService _firebaseService;
+  int _currentHighScore = 0;
+  Timer? _timer;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _firebaseService = FirebaseService();
+    _initializeGame();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _initializeGame() async {
+    _game = TetrisGame.empty();
+    _currentHighScore = await _firebaseService.getGlobalHighScore();
+    _startTimer();
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (_game.isPaused || _game.isGameOver) return;
+      _game.drop();
+      if (_game.isGameOver) {
+        _timer?.cancel();
+        _gameOver();
+      }
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _moveLeft() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.moveLeft();
+    });
+  }
+
+  void _moveRight() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.moveRight();
+    });
+  }
+
+  void _rotate() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.rotate();
+    });
+  }
+
+  void _fastDrop() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.hardDrop();
+      if (_game.isGameOver) {
+        _timer?.cancel();
+        _gameOver();
+      }
+    });
+  }
+
+  void _pauseAndSave() async {
+    setState(() {
+      _game.isPaused = !_game.isPaused;
+    });
+    await _firebaseService.saveGame(_game);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_game.isPaused ? 'Game paused and saved' : 'Game resumed')),
+      );
+    }
+  }
+
+  void _gameOver() async {
+    _timer?.cancel();
+    await _firebaseService.saveScore(_game.score);
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GameOverScreen(score: _game.score),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Копируем сетку
-    List<List<int>> displayGrid = List.generate(20, (i) => List.from(game.grid[i]));
-    
-    // Накладываем текущую фигуру
-    var pieceMatrix = TetrisGame.pieces[game.currentPiece['type']]![game.currentPiece['rotation']];
-    int pieceX = game.currentPiece['x'];
-    int pieceY = game.currentPiece['y'];
-    for (int i = 0; i < pieceMatrix.length; i++) {
-      for (int j = 0; j < pieceMatrix[0].length; j++) {
-        if (pieceMatrix[i][j] == 1) {
-          int gridX = pieceX + j;
-          int gridY = pieceY + i;
-          if (gridX >= 0 && gridX < 10 && gridY >= 0 && gridY < 20) {
-            displayGrid[gridY][gridX] = 1;
-          }
-        }
-      }
+    if (!_isInitialized) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Доступная ширина и высота от родителя (Expanded)
-        double maxWidth = constraints.maxWidth;
-        double maxHeight = constraints.maxHeight;
-        
-        // Какой размер ячейки позволит поместить всю сетку
-        double cellSizeByWidth = maxWidth / 10;
-        double cellSizeByHeight = maxHeight / 20;
-        double cellSize = cellSizeByWidth < cellSizeByHeight ? cellSizeByWidth : cellSizeByHeight;
-        
-        double gridWidth = cellSize * 10;
-        double gridHeight = cellSize * 20;
-        
-        return Center(
-          child: SizedBox(
-            width: gridWidth,
-            height: gridHeight,
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 10,
-                childAspectRatio: 1,
-              ),
-              itemCount: 200,
-              itemBuilder: (context, index) {
-                int row = index ~/ 10;
-                int col = index % 10;
-                bool isFilled = displayGrid[row][col] == 1;
-                return Container(
-                  margin: const EdgeInsets.all(1),
-                  decoration: BoxDecoration(
-                    color: isFilled ? Colors.blue : Colors.grey[300],
-                    border: Border.all(color: Colors.grey.shade400),
+    Color scoreColor = _game.score > _currentHighScore ? Colors.amber : Colors.white;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Tetris Cloud'),
+        backgroundColor: Colors.black,
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      const Text('SCORE', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        '${_game.score}',
+                        style: TextStyle(
+                          color: scoreColor,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              },
+                  Column(
+                    children: [
+                      const Text('HIGH SCORE', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        '$_currentHighScore',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+            GameGrid(game: _game),
+            const SizedBox(height: 20),
+            ControlButtons(
+              onLeft: _moveLeft,
+              onRight: _moveRight,
+              onRotate: _rotate,
+              onDown: _fastDrop,
+              onPause: _pauseAndSave,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
     );
   }
 }
