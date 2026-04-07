@@ -1,7 +1,15 @@
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const TetrisApp());
-}
+[damir@vega tetris_cloud]$ flutter run -d web-server
+Launching lib/main.dart on Web Server in debug mode...
+Waiting for connection from debug service on Web Server...         23.4s
+lib/main.dart is being served at http://localhost:39579
+The web-server device requires the Dart Debug Chrome extension for debugging. Consider using the Chrome or Edge devices for an improved development workflow.
+
+Flutter run key commands.
+r Hot reload. 🔥🔥🔥
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+
