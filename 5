@@ -1,0 +1,67 @@
+@override
+Widget build(BuildContext context) {
+  if (!_isInitialized) {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Color scoreColor = _game.score > _currentHighScore ? Colors.amber : Colors.white;
+
+  return Scaffold(
+    backgroundColor: Colors.black,
+    appBar: AppBar(
+      title: const Text('Tetris Cloud'),
+      backgroundColor: Colors.black,
+      centerTitle: true,
+    ),
+    body: Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Column(
+                children: [
+                  const Text('SCORE', style: TextStyle(color: Colors.grey)),
+                  Text(
+                    '${_game.score}',
+                    style: TextStyle(
+                      color: scoreColor,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                children: [
+                  const Text('HIGH SCORE', style: TextStyle(color: Colors.grey)),
+                  Text(
+                    '$_currentHighScore',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: GameGrid(game: _game)), // ← главное изменение
+        ControlButtons(
+          onLeft: _moveLeft,
+          onRight: _moveRight,
+          onRotate: _rotate,
+          onDown: _fastDrop,
+          onPause: _pauseAndSave,
+        ),
+        const SizedBox(height: 20),
+      ],
+    ),
+  );
+}
