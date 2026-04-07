@@ -1,0 +1,20 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+class UserService {
+  static const String _keyPlayerName = 'player_name';
+  
+  Future<void> savePlayerName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyPlayerName, name);
+  }
+  
+  Future<String?> getPlayerName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyPlayerName);
+  }
+  
+  Future<bool> hasPlayerName() async {
+    final name = await getPlayerName();
+    return name != null && name.isNotEmpty;
+  }
+}
