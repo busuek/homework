@@ -1,0 +1,280 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../models/tetris_game.dart';
+import '../widgets/game_grid.dart';
+import '../widgets/control_buttons.dart';
+import '../services/firebase_service.dart';
+import '../services/user_service.dart';
+import 'game_over_screen.dart';
+
+class GameScreen extends StatefulWidget {
+  const GameScreen({Key? key}) : super(key: key);
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  late TetrisGame _game;
+  late FirebaseService _firebaseService;
+  late UserService _userService;
+  String? _playerName;
+  int _currentHighScore = 0;
+  Timer? _timer;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _firebaseService = FirebaseService();
+    _userService = UserService();
+    _initializeGame();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initializeGame() async {
+    // Проверяем и запрашиваем имя игрока
+    await _checkAndAskPlayerName();
+
+    // Пытаемся загрузить сохранённую игру
+    TetrisGame? savedGame = await _firebaseService.loadGame();
+    if (savedGame != null && !savedGame.isGameOver) {
+      _game = savedGame;
+    } else {
+      _game = TetrisGame.empty();
+    }
+
+    // Загружаем глобальный рекорд
+    _currentHighScore = await _firebaseService.getGlobalHighScore();
+
+    // Запускаем игровой цикл
+    _startTimer();
+
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  Future<void> _checkAndAskPlayerName() async {
+    bool hasName = await _userService.hasPlayerName();
+    if (!hasName) {
+      await _showNameDialog();
+    } else {
+      _playerName = await _userService.getPlayerName();
+    }
+  }
+
+  Future<void> _showNameDialog() async {
+    TextEditingController controller = TextEditingController();
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Welcome to Tetris!'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Enter your name',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              String name = controller.text.trim();
+              if (name.isEmpty) name = 'Anonymous';
+              _userService.savePlayerName(name);
+              _playerName = name;
+              Navigator.pop(context);
+            },
+            child: const Text('PLAY'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (_game.isPaused || _game.isGameOver) return;
+      _game.drop();
+      if (mounted) {
+        setState(() {
+          _updateHighScoreIfNeeded();
+        });
+      }
+      if (_game.isGameOver) {
+        _timer?.cancel();
+        _gameOver();
+      }
+    });
+  }
+
+  void _updateHighScoreIfNeeded() {
+    if (_game.score > _currentHighScore) {
+      setState(() {
+        _currentHighScore = _game.score;
+      });
+    }
+  }
+
+  void _moveLeft() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.moveLeft();
+      _updateHighScoreIfNeeded();
+    });
+  }
+
+  void _moveRight() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.moveRight();
+      _updateHighScoreIfNeeded();
+    });
+  }
+
+  void _rotate() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.rotate();
+      _updateHighScoreIfNeeded();
+    });
+  }
+
+  void _fastDrop() {
+    if (_game.isPaused || _game.isGameOver) return;
+    setState(() {
+      _game.hardDrop();
+      _updateHighScoreIfNeeded();
+      if (_game.isGameOver) {
+        _timer?.cancel();
+        _gameOver();
+      }
+    });
+  }
+
+  void _pauseAndSave() async {
+    setState(() {
+      _game.isPaused = !_game.isPaused;
+    });
+    await _firebaseService.saveGame(_game);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_game.isPaused ? 'Game paused and saved' : 'Game resumed')),
+      );
+    }
+  }
+
+  void _gameOver() async {
+    _timer?.cancel();
+    if (_playerName != null) {
+      await _firebaseService.saveScore(_game.score, _playerName!);
+    } else {
+      await _firebaseService.saveScore(_game.score, 'Unknown');
+    }
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GameOverScreen(score: _game.score),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    Color scoreColor = _game.score > _currentHighScore ? Colors.amber : Colors.white;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Tetris Cloud'),
+        backgroundColor: Colors.black,
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: _showNameDialog,
+            tooltip: 'Change name',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    const Text('SCORE', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      '${_game.score}',
+                      style: TextStyle(
+                        color: scoreColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    const Text('HIGH SCORE', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      '$_currentHighScore',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                if (_playerName != null)
+                  Column(
+                    children: [
+                      const Text('PLAYER', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        _playerName!,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+          Expanded(child: GameGrid(game: _game)),
+          ControlButtons(
+            onLeft: _moveLeft,
+            onRight: _moveRight,
+            onRotate: _rotate,
+            onDown: _fastDrop,
+            onPause: _pauseAndSave,
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
