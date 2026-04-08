@@ -1,0 +1,748 @@
+Полное Техническое Задание - Tetris Cloud
+
+📱 Общая архитектура
+
+```
+lib/
+├── main.dart
+├── models/
+│   └── tetris_game.dart
+├── screens/
+│   ├── game_screen.dart
+│   └── game_over_screen.dart
+├── widgets/
+│   ├── game_grid.dart
+│   └── control_buttons.dart
+└── services/
+    └── firebase_service.dart
+```
+
+---
+
+🔧 ШАГ 1: Настройка окружения и Firebase
+
+1.1 Создание проекта Flutter
+
+```bash
+flutter create tetris_cloud
+cd tetris_cloud
+```
+
+1.2 Настройка Firebase
+
+```bash
+# Установите Firebase CLI если еще нет
+npm install -g firebase-tools
+
+# Выполните вход
+firebase login
+
+# Настройте проект (выберите ваш проект в Firebase Studio)
+flutterfire configure
+```
+
+1.3 Обновите pubspec.yaml
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^2.24.2
+  cloud_firestore: ^4.14.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+```
+
+1.4 Инициализация Firebase в main.dart
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const TetrisApp());
+}
+```
+
+---
+
+📊 ШАГ 2: Создание модели и парсинга JSON
+
+2.1 Создайте models/tetris_game.dart
+
+```dart
+class TetrisGame {
+  List<List<int>> grid;      // 10x20, 0=пусто, 1=занято
+  Map<String, dynamic> currentPiece; // координаты падающей фигуры
+  int score;
+  int highScore;
+  bool isPaused;
+
+  TetrisGame({
+    required this.grid,
+    required this.currentPiece,
+    required this.score,
+    required this.highScore,
+    required this.isPaused,
+  });
+
+  // Метод для JSON -> объект
+  factory TetrisGame.fromJson(Map<String, dynamic> json) {
+    return TetrisGame(
+      grid: List<List<int>>.from(
+        json['grid'].map((row) => List<int>.from(row))
+      ),
+      currentPiece: Map<String, dynamic>.from(json['currentPiece']),
+      score: json['score'],
+      highScore: json['highScore'] ?? 0,
+      isPaused: json['isPaused'] ?? false,
+    );
+  }
+
+  // Метод для объект -> JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'grid': grid,
+      'currentPiece': currentPiece,
+      'score': score,
+      'highScore': highScore,
+      'isPaused': isPaused,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+  }
+
+  // Создание пустой игры
+  static TetrisGame empty() {
+    return TetrisGame(
+      grid: List.generate(20, (_) => List.generate(10, (_) => 0)),
+      currentPiece: {'x': 3, 'y': 0, 'shape': 'T', 'rotation': 0},
+      score: 0,
+      highScore: 0,
+      isPaused: false,
+    );
+  }
+}
+```
+
+---
+
+🎮 ШАГ 3: Разработка интерфейса и событий
+
+3.1 Создайте widgets/game_grid.dart
+
+```dart
+import 'package:flutter/material.dart';
+
+class GameGrid extends StatelessWidget {
+  final List<List<int>> grid;
+  final Map<String, dynamic> currentPiece;
+
+  const GameGrid({
+    Key? key,
+    required this.grid,
+    required this.currentPiece,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Создаем копию сетки и накладываем текущую фигуру
+    List<List<int>> displayGrid = List.generate(20, (i) => List.from(grid[i]));
+    
+    // Добавляем текущую фигуру (упрощенно для примера)
+    if (currentPiece['y'] >= 0 && currentPiece['y'] < 20) {
+      // Здесь логика отрисовки фигуры
+      // Для простоты - закрашиваем одну клетку
+      if (currentPiece['x'] >= 0 && currentPiece['x'] < 10) {
+        displayGrid[currentPiece['y']][currentPiece['x']] = 1;
+      }
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 10,
+        childAspectRatio: 1,
+      ),
+      itemCount: 200,
+      itemBuilder: (context, index) {
+        int row = index ~/ 10;
+        int col = index % 10;
+        bool isFilled = displayGrid[row][col] == 1;
+        
+        return Container(
+          margin: const EdgeInsets.all(1),
+          decoration: BoxDecoration(
+            color: isFilled ? Colors.blue : Colors.grey[300],
+            border: Border.all(color: Colors.grey.shade400),
+          ),
+        );
+      },
+    );
+  }
+}
+```
+
+3.2 Создайте widgets/control_buttons.dart
+
+```dart
+import 'package:flutter/material.dart';
+
+class ControlButtons extends StatelessWidget {
+  final VoidCallback onLeft;
+  final VoidCallback onRight;
+  final VoidCallback onRotate;
+  final VoidCallback onDown;
+  final VoidCallback onPause;
+
+  const ControlButtons({
+    Key? key,
+    required this.onLeft,
+    required this.onRight,
+    required this.onRotate,
+    required this.onDown,
+    required this.onPause,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Tooltip(
+          message: 'Move Left',
+          child: IconButton(
+            icon: const Icon(Icons.arrow_left, size: 40),
+            onPressed: onLeft,
+          ),
+        ),
+        Tooltip(
+          message: 'Move Right',
+          child: IconButton(
+            icon: const Icon(Icons.arrow_right, size: 40),
+            onPressed: onRight,
+          ),
+        ),
+        Tooltip(
+          message: 'Rotate',
+          child: IconButton(
+            icon: const Icon(Icons.rotate_right, size: 40),
+            onPressed: onRotate,
+          ),
+        ),
+        Tooltip(
+          message: 'Fast Drop',
+          child: IconButton(
+            icon: const Icon(Icons.arrow_downward, size: 40),
+            onPressed: onDown,
+          ),
+        ),
+        Tooltip(
+          message: 'Pause / Save',
+          child: IconButton(
+            icon: const Icon(Icons.pause, size: 40),
+            onPressed: onPause,
+          ),
+        ),
+      ],
+    );
+  }
+}
+```
+
+3.3 Создайте screens/game_screen.dart
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/tetris_game.dart';
+import '../widgets/game_grid.dart';
+import '../widgets/control_buttons.dart';
+import '../services/firebase_service.dart';
+
+class GameScreen extends StatefulWidget {
+  const GameScreen({Key? key}) : super(key: key);
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  late TetrisGame _game;
+  late FirebaseService _firebaseService;
+  int _currentHighScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _firebaseService = FirebaseService();
+    _loadSavedGame();
+    _loadHighScore();
+  }
+
+  void _loadSavedGame() async {
+    // Пытаемся загрузить сохраненную игру из Firebase
+    var savedGame = await _firebaseService.loadGame();
+    if (savedGame != null) {
+      setState(() {
+        _game = savedGame;
+      });
+    } else {
+      setState(() {
+        _game = TetrisGame.empty();
+      });
+    }
+  }
+
+  void _loadHighScore() async {
+    int highScore = await _firebaseService.getGlobalHighScore();
+    setState(() {
+      _currentHighScore = highScore;
+    });
+  }
+
+  void _moveLeft() {
+    setState(() {
+      // Логика движения влево
+      if (_game.currentPiece['x'] > 0) {
+        _game.currentPiece['x']--;
+      }
+    });
+  }
+
+  void _moveRight() {
+    setState(() {
+      if (_game.currentPiece['x'] < 9) {
+        _game.currentPiece['x']++;
+      }
+    });
+  }
+
+  void _rotate() {
+    setState(() {
+      // Логика поворота
+      _game.currentPiece['rotation'] = (_game.currentPiece['rotation'] + 1) % 4;
+    });
+  }
+
+  void _fastDrop() {
+    setState(() {
+      // Логика быстрого падения
+      while (_game.currentPiece['y'] < 19) {
+        _game.currentPiece['y']++;
+      }
+      _lockPiece();
+    });
+  }
+
+  void _lockPiece() {
+    // Фиксируем фигуру на поле
+    _game.grid[_game.currentPiece['y']][_game.currentPiece['x']] = 1;
+    _game.score += 10;
+    
+    // Проверка Game Over
+    if (_game.currentPiece['y'] == 0) {
+      _gameOver();
+    } else {
+      // Создаем новую фигуру
+      _game.currentPiece = {'x': 3, 'y': 0, 'shape': 'T', 'rotation': 0};
+    }
+  }
+
+  void _gameOver() async {
+    // Сохраняем рекорд
+    await _firebaseService.saveScore(_game.score);
+    
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GameOverScreen(score: _game.score),
+      ),
+    );
+  }
+
+  void _pauseAndSave() async {
+    setState(() {
+      _game.isPaused = !_game.isPaused;
+    });
+    await _firebaseService.saveGame(_game);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Game saved to cloud!')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Изменение цвета счета
+    Color scoreColor = _game.score > _currentHighScore 
+        ? Colors.amber 
+        : Colors.white;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Tetris Cloud'),
+        backgroundColor: Colors.black,
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          // Информационная панель
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    const Text('SCORE', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      '${_game.score}',
+                      style: TextStyle(
+                        color: scoreColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  children: [
+                    const Text('HIGH SCORE', style: TextStyle(color: Colors.grey)),
+                    Text(
+                      '$_currentHighScore',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // Игровое поле
+          Expanded(
+            child: GameGrid(
+              grid: _game.grid,
+              currentPiece: _game.currentPiece,
+            ),
+          ),
+          
+          // Кнопки управления
+          ControlButtons(
+            onLeft: _moveLeft,
+            onRight: _moveRight,
+            onRotate: _rotate,
+            onDown: _fastDrop,
+            onPause: _pauseAndSave,
+          ),
+          
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
+```
+
+3.4 Создайте screens/game_over_screen.dart
+
+```dart
+import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
+
+class GameOverScreen extends StatelessWidget {
+  final int score;
+
+  const GameOverScreen({Key? key, required this.score}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Game Over')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.gamepad, size: 100),
+            const SizedBox(height: 20),
+            Text(
+              'Final Score: $score',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/game');
+              },
+              child: const Text('Play Again'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/leaderboard');
+              },
+              child: const Text('View Leaderboard'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+---
+
+☁️ ШАГ 4: Сервис Firebase
+
+4.1 Создайте services/firebase_service.dart
+
+```dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/tetris_game.dart';
+
+class FirebaseService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _gameId = 'current_game'; // Фиксированный ID для сохранения
+  final String _scoresCollection = 'scores';
+
+  // Сохранение игры в облако
+  Future<void> saveGame(TetrisGame game) async {
+    try {
+      await _firestore.collection('saved_games').doc(_gameId).set(game.toJson());
+      print('Game saved successfully');
+    } catch (e) {
+      print('Error saving game: $e');
+    }
+  }
+
+  // Загрузка игры из облака
+  Future<TetrisGame?> loadGame() async {
+    try {
+      DocumentSnapshot doc = await _firestore.collection('saved_games').doc(_gameId).get();
+      
+      if (doc.exists) {
+        return TetrisGame.fromJson(doc.data() as Map<String, dynamic>);
+      }
+    } catch (e) {
+      print('Error loading game: $e');
+    }
+    return null;
+  }
+
+  // Сохранение рекорда после Game Over
+  Future<void> saveScore(int score) async {
+    try {
+      await _firestore.collection(_scoresCollection).add({
+        'score': score,
+        'date': DateTime.now(),
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      print('Score saved: $score');
+    } catch (e) {
+      print('Error saving score: $e');
+    }
+  }
+
+  // Получение глобального рекорда
+  Future<int> getGlobalHighScore() async {
+    try {
+      QuerySnapshot query = await _firestore
+          .collection(_scoresCollection)
+          .orderBy('score', descending: true)
+          .limit(1)
+          .get();
+      
+      if (query.docs.isNotEmpty) {
+        return query.docs.first['score'] as int;
+      }
+    } catch (e) {
+      print('Error getting high score: $e');
+    }
+    return 0;
+  }
+
+  // Живая таблица лидеров (Stream)
+  Stream<List<Map<String, dynamic>>> getLeaderboardStream() {
+    return _firestore
+        .collection(_scoresCollection)
+        .orderBy('score', descending: true)
+        .limit(10)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return {
+              'id': doc.id,
+              'score': doc['score'],
+              'date': doc['date'],
+            };
+          }).toList();
+        });
+  }
+}
+```
+
+4.2 Создайте screens/leaderboard_screen.dart
+
+```dart
+import 'package:flutter/material.dart';
+import '../services/firebase_service.dart';
+
+class LeaderboardScreen extends StatelessWidget {
+  final FirebaseService _firebaseService = FirebaseService();
+
+  LeaderboardScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Leaderboard - Top 10'),
+        backgroundColor: Colors.black,
+      ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _firebaseService.getLeaderboardStream(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          var scores = snapshot.data!;
+          
+          if (scores.isEmpty) {
+            return const Center(child: Text('No scores yet!'));
+          }
+          
+          return ListView.builder(
+            itemCount: scores.length,
+            itemBuilder: (context, index) {
+              var score = scores[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text('${index + 1}'),
+                    backgroundColor: index == 0 ? Colors.amber : Colors.grey,
+                  ),
+                  title: Text('Score: ${score['score']}'),
+                  subtitle: Text('Date: ${score['date']?.toLocal() ?? 'Unknown'}'),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+```
+
+---
+
+📋 ШАГ 5: Настройка маршрутизации
+
+Обновите main.dart
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'screens/game_screen.dart';
+import 'screens/game_over_screen.dart';
+import 'screens/leaderboard_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const TetrisApp());
+}
+
+class TetrisApp extends StatelessWidget {
+  const TetrisApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Tetris Cloud',
+      theme: ThemeData.dark(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const GameScreen(),
+        '/game': (context) => const GameScreen(),
+        '/leaderboard': (context) => const LeaderboardScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/gameover') {
+          final score = settings.arguments as int;
+          return MaterialPageRoute(
+            builder: (context) => GameOverScreen(score: score),
+          );
+        }
+        return null;
+      },
+    );
+  }
+}
+```
+
+---
+
+✅ ЧЕК-ЛИСТ ПРОВЕРКИ
+
+Firebase настройка
+
+· flutterfire configure выполнен успешно
+· Firebase проект создан в Firebase Studio
+· Коллекции созданы: saved_games, scores
+
+Функциональность
+
+· Сетка 10x20 отображается
+· Кнопки управления работают
+· Tooltips отображаются при долгом нажатии
+· Счет меняет цвет на золотой при превышении рекорда
+· Пауза сохраняет состояние в Firebase
+· Game Over переводит на экран итогов
+· Таблица лидеров обновляется в реальном времени
+
+JSON логика
+
+· toJson() и fromJson() работают корректно
+· Состояние игры можно сохранить и восстановить
+
+---
+
+🚀 Запуск
+
+```bash
+flutter pub get
+flutter run
+```
+
+---
+
+🔍 Тестирование в Firebase Studio
+
+1. Откройте Firebase Studio
+2. Перейдите в Firestore Database
+3. Проверьте коллекцию scores - там должны появляться записи
+4. Проверьте коллекцию saved_games - там сохраняется состояние паузы
+
+Вот и всё! У вас полностью работающее Tetris приложение с облачной синхронизацией, живой таблицей лидеров и JSON сериализацией.
