@@ -50,3 +50,60 @@ source ~/.bashrc
 
 # Проверить версию
 dotnet --version
+
+
+
+
+
+
+
+
+
+Selected installer: /home/vega/Downloads/Packet_Tracer821_amd64_signed.deb 
+
+Removing old version of Packet Tracer from /opt/pt
+Cisco Packet Tracer was uninstalled.
+Extracting files
+Installing dependencies
+[sudo] password for damir: 
+RPM Fusion for Fedora 38 - Nonfree - Updates    0.0  B/s |   0  B     06:03     Errors during downloading metadata for repository 'rpmfusion-nonfree-updates':--  - Curl error (28): Timeout was reached for https://mirrors.rpmfusion.org/metalink?repo=nonfree-fedora-updates-released-38&arch=x86_64 [Operation too slow. Less than 1000 bytes/sec transferred the last 30 seconds]
+Error: Failed to download metadata for repo 'rpmfusion-nonfree-updates': Cannot prepare internal mirrorlist: Curl error (28): Timeout was reached for https://mirrors.rpmfusion.org/metalink?repo=nonfree-fedora-updates-released-38&arch=x86_64 [Operation too slow. Less than 1000 bytes/sec transferred the last 30 seconds]
+Ignoring repositories: rpmfusion-nonfree-updates
+Last metadata expiration check: 1:33:57 ago on Mon 20 Apr 2026 02:50:45 PM MSK.
+Package binutils-2.39-16.fc38.x86_64 is already installed.
+Package fuse-2.9.9-16.fc38.x86_64 is already installed.
+Package fuse-libs-2.9.9-16.fc38.x86_64 is already installed.
+Dependencies resolved.
+================================================================================
+ Package            Architecture  Version                  Repository      Size
+================================================================================
+Installing:
+ qt5-qttools        x86_64        5.15.12-1.fc38           updates         41 k
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Total download size: 41 k
+Installed size: 96 k
+Downloading Packages:
+qt5-qttools-5.15.12-1.fc38.x86_64.rpm            12 kB/s |  41 kB     00:03    
+--------------------------------------------------------------------------------
+Total                                           7.7 kB/s |  41 kB     00:05     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                        1/1 
+  Installing       : qt5-qttools-5.15.12-1.fc38.x86_64                      1/1 
+  Running scriptlet: qt5-qttools-5.15.12-1.fc38.x86_64                      1/1 
+  Verifying        : qt5-qttools-5.15.12-1.fc38.x86_64                      1/1 
+
+Installed:
+  qt5-qttools-5.15.12-1.fc38.x86_64                                             
+
+Complete!
+[sudo] password for damir: 
+mkdir: cannot create directory ‘/home/damir/.local/share/applications’: No such file or directory
+[damir@vega packettracer-fedora]$ 
