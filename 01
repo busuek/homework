@@ -9,3 +9,15 @@ sudo sh -c 'echo -e "[packages-microsoft-com-prod]\nname=packages-microsoft-com-
 curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 8.0
 echo 'export PATH=$PATH:$HOME/.dotnet' >> ~/.bashrc
 source ~/.bashrc
+
+[damir@vega DZ_2]$ sudo dnf update
+Copr repo for PyCharm owned by phracek                                                                                                   26  B/s | 158  B     00:05    
+Errors during downloading metadata for repository 'copr:copr.fedorainfracloud.org:phracek:PyCharm':
+  - Status code: 404 for https://download.copr.fedorainfracloud.org/results/phracek/PyCharm/fedora-38-x86_64/repodata/repomd.xml (IP: 2600:9000:2368:8400:4:bbc1:1840:93a1)
+Error: Failed to download metadata for repo 'copr:copr.fedorainfracloud.org:phracek:PyCharm': Cannot download repomd.xml: Cannot download repodata/repomd.xml: All mirrors were tried
+packages-microsoft-com-prod                                                                                                             1.3 MB/s | 2.8 MB     00:02    
+notion-repackaged                                                                                                                       0.0  B/s |   0  B     02:01    
+Errors during downloading metadata for repository 'notion-repackaged':
+  - Curl error (28): Timeout was reached for https://yum.fury.io/notion-repackaged/repodata/repomd.xml [Operation too slow. Less than 1000 bytes/sec transferred the last 30 seconds]
+Error: Failed to download metadata for repo 'notion-repackaged': Cannot download repomd.xml: Cannot download repodata/repomd.xml: All mirrors were tried
+RPM Fusion for Fedora 38 - Nonfree - NVIDIA Driver        
