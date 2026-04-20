@@ -36,3 +36,17 @@ Restore failed.
 Post action failed.
 Manual instructions: Run 'dotnet restore'
 
+
+
+
+
+
+# Установка .NET 10 SDK в домашнюю папку
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0
+
+# Добавить путь в переменные окружения
+echo 'export PATH=$PATH:$HOME/.dotnet' >> ~/.bashrc
+source ~/.bashrc
+
+# Проверить версию
+dotnet --version
