@@ -1,7 +1,6 @@
 # Домашнее задание к занятию `«GitLab»` - `Тимохин Максим`
 
-https://drive.google.com/file/d/11_TujaxN2boiG3NqChl6jlI0YLiEtEb7/view?usp=sharing
----
+https://drive.google.com/file/d/1as3weIbk0riAff0PxX5yVu63K0_oo5sp/view?usp=sharing
 
 ### Задание 1
 
