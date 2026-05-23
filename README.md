@@ -1,4 +1,95 @@
 
+```markdown
+# Ответы на контрольные вопросы по лабораторным работам
+
+## Лабораторная работа № 4.1 – Использование PKI в сервисах OpenVPN
+
+### 1. Какие пакеты разрешают приведённые строки iptables?
+```bash
+iptables -I INPUT -p tcp -m state --state ESTABLISHED -j ACCEPT
+iptables -I INPUT -p icmp -m state --state ESTABLISHED -j ACCEPT
+iptables -I INPUT -p udp -m state --state ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p tcp -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p icmp -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p udp -m state --state NEW,ESTABLISHED -j ACCEPT
+```
+
+Ответ:
+
+· В цепочке INPUT разрешены входящие пакеты протоколов TCP, UDP и ICMP только для уже установленных соединений (состояние ESTABLISHED). Новые входящие соединения не пропускаются.
+· В цепочке OUTPUT разрешены исходящие пакеты TCP, UDP, ICMP как для новых (NEW), так и для уже установленных соединений (ESTABLISHED). Это позволяет хосту инициировать любые исходящие соединения, а также отвечать на входящие запросы, не нарушая установленную сессию.
+
+2. Какие порты и протоколы необходимо разрешить в цепочке INPUT межсетевого экрана на ВМ astra-1.7, чтобы появилась возможность подключения OpenVPN и прохождения ICMP-пакетов?
+
+Ответ:
+Необходимо разрешить:
+
+· UDP пакеты, адресованные на порт 1194 (состояния NEW, ESTABLISHED);
+· ICMP пакеты типа echo-request (или весь протокол ICMP) в состояниях NEW, ESTABLISHED.
+
+Пример правил:
+
+```bash
+iptables -I INPUT -p udp --dport 1194 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -I INPUT -p icmp --icmp-type echo-request -m state --state NEW,ESTABLISHED -j ACCEPT
+```
+
+---
+
+Лабораторная работа № 5 – Защита от руткитов и сетевых вторжений
+
+В данной работе отсутствуют явные текстовые вопросы для письменного ответа. Результатом являются скриншоты вывода команд.
+Тем не менее, приведены краткие пояснения ключевых моментов.
+
+1. Rkhunter
+
+· Утилита rkhunter проверяет наличие руткитов, уязвимостей и изменений системных файлов.
+· При появлении Warning в логе /var/log/rkhunter.log необходимо проанализировать природу предупреждения (часто это ложные срабатывания из-за обновлений или кастомной конфигурации).
+
+2. Snort
+
+· Правила Snort в local.rules используют синтаксис: alert <протокол> <источник> -> <назначение> (msg:"..."; sid:...; rev:...; дополнительные опции).
+· В лабораторной работе сканирования моделировались командой nmap с различными флагами (-sT, -sX, -sF, -sU, -sP), что вызывало соответствующие алерты в консоли Snort.
+
+3. Fail2ban
+
+· Конфигурация блокировки: bantime = 5m, findtime = 10m, maxretry = 3 — означает, что IP блокируется на 5 минут после 3 неудачных попыток в течение 10 минут.
+· Проверить забаненные IP: fail2ban-client status sshd или fail2ban-client get sshd banned.
+· Просмотр правил iptables, созданных fail2ban: iptables -L -n | grep <IP>.
+
+4. Безопасная настройка SSH
+
+· Отключение парольной аутентификации: PasswordAuthentication no.
+· Запрет прямого входа root: PermitRootLogin no.
+· Ограничение числа попыток: MaxAuthTries 3.
+· Использование только протокола 2.
+· Задание стойких алгоритмов шифрования (Ciphers, MACs, KexAlgorithms).
+· Аутентификация по ключам требует правильных прав:
+  · ~/.ssh — 700,
+  · ~/.ssh/authorized_keys — 600,
+  · владелец — пользователь.
+
+5. Lynis
+
+· Lynis выполняет аудит безопасности системы и даёт рекомендации.
+· Индекс рекомендации (например, SSH-7408) можно изучить командой lynis show details SSH-7408.
+· Для улучшения оценки необходимо применить предложенные изменения в конфигурации SSH и других сервисов, после чего выполнить повторный аудит.
+
+```
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list
 
 
