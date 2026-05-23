@@ -1,3 +1,23 @@
+cat <<EOF >> /etc/ssh/sshd_config
+PasswordAuthentication no
+PermitRootLogin no
+PermitUserEnvironment no
+IgnoreRhosts yes
+MaxAuthTries 3
+Ciphers aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc,grasshopper-ctr
+MACs hmac-md5,hmac-sha1,umac-64@openssh.com,hmac-ripemd160,hmac-gost2012-256-etm
+KexAlgorithms curve25519-sha256,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+ClientAliveInterval 300
+Protocol 2
+EOF
+
+
+
+
+
+
+
+
 cat <<EOF > /etc/fail2ban/jail.local
 [DEFAULT]
 bantime = 5m
