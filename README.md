@@ -1,3 +1,17 @@
+# Создать .ssh, если нет
+mkdir -p /home/astra/.ssh
+chmod 700 /home/astra/.ssh
+
+# Добавить публичный ключ в authorized_keys
+cat /home/astra/.ssh/sa_key.pub > /home/astra/.ssh/authorized_keys
+chmod 600 /home/astra/.ssh/authorized_keys
+chown -R astra:astra /home/astra/.ssh
+
+
+
+
+
+
 cat <<EOF >> /etc/ssh/sshd_config
 PasswordAuthentication no
 PermitRootLogin no
