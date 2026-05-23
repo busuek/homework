@@ -1,4 +1,8 @@
 
+echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list
+
+
+
 wget -O - https://packages.cisofy.com/keys/cisofy-software-public.key | sudo apt-key add -
 
 
