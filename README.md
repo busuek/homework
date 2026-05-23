@@ -1,3 +1,7 @@
+
+wget -O - https://packages.cisofy.com/keys/cisofy-software-public.key | sudo apt-key add -
+
+
 # Создать .ssh, если нет
 mkdir -p /home/astra/.ssh
 chmod 700 /home/astra/.ssh
