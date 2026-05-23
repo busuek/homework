@@ -1,3 +1,7 @@
+https://drive.google.com/file/d/1l7CWOO9A-5AUtqQDkH7EwYOwFl3zkW1x/view?usp=sharing
+
+
+
 
 ```markdown
 # Ответы на контрольные вопросы по лабораторным работам
