@@ -1,3 +1,23 @@
+cat <<EOF > /etc/fail2ban/jail.local
+[DEFAULT]
+bantime = 5m
+findtime = 10m
+maxretry = 3
+EOF
+
+
+
+for i in {1..4}; do sshpass -p wrongpass ssh -o StrictHostKeyChecking=no testuser@127.0.0.1 exit; done
+
+
+
+fail2ban-client banned
+iptables -L | grep 127.0.0.1
+
+
+
+
+
 apt-get install nmap -y
 nmap -sT -p22 127.0.0.1
 nmap -sX -p22 127.0.0.1
