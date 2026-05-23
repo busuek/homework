@@ -1,3 +1,20 @@
+apt-get install nmap -y
+nmap -sT -p22 127.0.0.1
+nmap -sX -p22 127.0.0.1
+nmap -sF -p22 127.0.0.1
+nmap -sU -p22 127.0.0.1
+nmap -sP 127.0.0.1 --disable-arp-ping
+ping -c 1 127.0.0.1
+
+
+
+
+
+
+
+
+
+
 cat <<EOF > /etc/snort/rules/local.rules
 alert tcp any any -> 127.0.0.1 any (msg: "TCP Scan"; sid:10000005; rev:2; )
 alert icmp any any -> 127.0.0.1 any (msg: "ICMP Scan"; dsize:0; sid:10000004; rev:1;)
