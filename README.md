@@ -1,3 +1,9 @@
+BOT_TOKEN=8744941480:AAHT7gRlH2weBFE7BPvaDSsTZ_IzF7-h7j8
+DEEPSEEK_API_KEY=sk-53386c38e674426fb11f37637041d411
+ADMIN_PASSWORD=qwe123qwe
+
+
+
 
 Done! Congratulations on your new bot. You will find it at t.me/FoodRecommendations_bot. You can now add a description, about section and profile picture for your bot, see /help for a list of commands. By the way, when you've finished creating your cool bot, ping our Bot Support if you want a better username for it. Just make sure the bot is fully operational before you do this.
 
