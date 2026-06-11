@@ -1,3 +1,10 @@
+https://drive.google.com/file/d/1fmN3CtzQ6Q5Jv31jys6rAt4V7j_xiwjg/view?usp=sharing
+
+
+
+
+
+
 BOT_TOKEN=8744941480:AAHT7==gdydygRlH2weBFE7BPvaDSsTZ_IzF7-h7j8
 DEEPSEEK_API_KEY=sk-53386c38e674jfiy97ugiug426fb11f37637041d411
 ADMIN_PASSWORD=qwe123qwe
