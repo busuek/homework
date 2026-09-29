@@ -2,6 +2,8 @@
 
 ---
 
+https://drive.google.com/file/d/1G0RWfxJO8j8dWmVeV9lY2SK1IQz3RxTL/view
+
 Текст видео-презентации (бот «Что съесть?»)
 
 Вступление (0:00–1:00)
